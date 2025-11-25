@@ -72,8 +72,8 @@ flowchart LR
     classDef critical fill:#ffcccc,stroke:#d00,stroke-width:2px
     class DB critical
 ```
-
-![[architecture.excalidraw|1500]]
+![[Pasted image 20251125191955.png]]
+![[architecture.excalidraw]]
 
 ---
 
@@ -194,42 +194,34 @@ flowchart TD
     class Auth,DB,Vault shield
 ```
 
-# 📦 Mesures techniques recommandées
+# **📦 Mesures techniques recommandées**
 
-## Pour l'application Python
+### **Pour l’application Python**
 
-- Environnement virtuel (venv) dédié et isolé
-- Analyse statique : **bandit** + **pylint** + **mypy**
-- Audit des dépendances : **pip-audit** pour détecter les CVE
-- Validation des entrées utilisateur
-- Gestion des erreurs sécurisée (pas de stack traces exposées)
+- venv dédié
+- bandit + pylint + mypy
+- pip-audit pour CVE
+### **Pour l’infra**
 
-## Pour l'infrastructure
+- Reverse proxy sécurisé
+- Conteneurs sandboxés
+- Stockage chiffré
+- Gestion des identités (MFA, RBAC)
+- Supervision SIEM / SOC
 
-- **Reverse proxy sécurisé** : NGINX avec configuration durcie
-- **Conteneurs sandboxés** : isolation des processus
-- **Stockage chiffré** : au repos et en transit
-- **Gestion des identités** : MFA obligatoire + RBAC
-- **Supervision** : SIEM / SOC pour détection des anomalies
-- **Sauvegardes** : régulières, chiffrées et testées
+# **🧩 Conclusion —
 
----
 
-# 🧩 Conclusion
+Même si l’application Python est simple et sert à collecter des données :
 
-Même si l'application Python est simple et sert à collecter des données :
+➡️ Le cœur du projet est **la mise en place d’une architecture sécurisée**, pas le code. (le code est developper par [[Metivier]] )
+  
+Vous êtes en train de démontrer :
+- la **gouvernance des identités**,
+- la **segmentation réseau**,
+- la **protection des secrets**,
+- la **gestion des flux**,
+- la **résilience et la supervision**,
+- et la **défense en profondeur** appliquée à un écosystème de collecte massive.
 
-➡️ **Le cœur du projet est la mise en place d'une architecture sécurisée**, pas le code.
-
-> Le code applicatif est développé par une équipe externe. Notre responsabilité est de garantir que l'infrastructure et l'architecture respectent les principes Security by Design.
-
-## Ce que ce projet démontre
-
-- La **gouvernance des identités** et des accès
-- La **segmentation réseau** et l'isolation des composants
-- La **protection des secrets** via vault
-- La **gestion sécurisée des flux** de données
-- La **résilience** et la **supervision** continue
-- La **défense en profondeur** appliquée à un écosystème de collecte massive
-
-C'est exactement ce qui est attendu dans un projet **Security by Design** moderne.
+  

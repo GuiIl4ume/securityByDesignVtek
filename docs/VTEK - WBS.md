@@ -72,7 +72,8 @@ flowchart LR
     classDef critical fill:#ffcccc,stroke:#d00,stroke-width:2px
     class DB critical
 ```
-![[Pasted image 20251125191955.png]]
+![[architecture devops.png]]
+
 ![[architecture.excalidraw]]
 
 ---

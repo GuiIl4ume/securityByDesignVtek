@@ -82,6 +82,7 @@ kanban-plugin: board
 - [ ] Configurer le chiffrement au repos
 - [ ] Mettre en place la validation des entrées
 - [ ] Définir la politique de gestion des logs
+- [ ] Mettre en place une API Gateway
 
 ### Conformité et audit
 - [ ] Vérifier la conformité RGPD

@@ -225,5 +225,3 @@ Vous êtes en train de démontrer :
 - la **résilience et la supervision**,
 - et la **défense en profondeur** appliquée à un écosystème de collecte massive.
 
-
-![[architecture_devops.png]]

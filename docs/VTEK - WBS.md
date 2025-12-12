@@ -73,7 +73,8 @@ flowchart LR
     class DB critical
 ```
 
-![](img/architecture_devops.png)
+
+![Architecture](architecture_devops_new.png)
 
 ![[architecture.excalidraw]]
 

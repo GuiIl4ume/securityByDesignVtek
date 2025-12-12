@@ -1,0 +1,13 @@
+# requirements.txt
+fastapi
+uvicorn[standard]
+pandas
+scikit-learn
+sqlalchemy
+psycopg2-binary
+requests
+seaborn
+matplotlib
+streamlit
+pydantic
+joblib

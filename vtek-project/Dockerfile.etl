@@ -1,0 +1,12 @@
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY ./common ./common
+COPY ./etl ./etl
+ENV API_URL="http://backend:8000"
+
+# --- AJOUTEZ CETTE LIGNE ---
+ENV PYTHONPATH="${PYTHONPATH}:/app"
+
+CMD ["python", "etl/generator.py"]

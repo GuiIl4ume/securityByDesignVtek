@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # --- Tier 3 : Data ---
+  db:
+    image: postgres:15-alpine
+    container_name: vtek-postgres
+    environment:
+      POSTGRES_USER: vtek_user
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: vtek_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vtek-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vtek_user -d vtek_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Tier 2 : Application (Backend) ---
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: vtek-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://vtek_user:secure_password@db:5432/vtek_db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - vtek-network
+
+  # --- Tier 1 : Presentation (Frontend) ---
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: vtek-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      # Le frontend parle au backend via le nom du service Docker interne 'backend'
+      API_URL: http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - vtek-network
+
+  # --- ETL (Simulation de l'ingestion) ---
+  etl:
+    build:
+      context: .
+      dockerfile: Dockerfile.etl
+    container_name: vtek-etl
+    environment:
+      API_URL: http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - vtek-network
+
+networks:
+  vtek-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

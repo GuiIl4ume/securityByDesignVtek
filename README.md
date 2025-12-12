@@ -4,6 +4,7 @@
 
 ## Description
 
+![[architecture_devops.png]]
 Application web permettant de collecter automatiquement des données sur des véhicules automobiles et de comparer leurs performances dans une interface unique, tout en garantissant l'intégrité, la disponibilité et la confidentialité des données.
 
 ## Architecture

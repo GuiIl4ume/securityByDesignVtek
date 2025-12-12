@@ -74,7 +74,7 @@ flowchart LR
 ```
 
 
-![Architecture](architecture_devops_new.png)
+![Architecture](img/architecture_devops_new.png)
 
 ![[architecture.excalidraw]]
 

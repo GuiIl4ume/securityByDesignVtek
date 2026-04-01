@@ -52,7 +52,7 @@ def generate_car_data() -> dict:
         fuel_efficiency = round(4.5 + (weight / 1000) * 1.8, 1)
 
     # Vitesse max réaliste
-    max_speed = int(120 + power * 0.22 - aerodynamic_level * 25)
+    max_speed = int(150 + power * 0.45 - aerodynamic_level * 80)
     max_speed = min(max_speed, 480)
 
     # 0–100 réaliste

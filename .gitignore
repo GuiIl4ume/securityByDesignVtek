@@ -1,0 +1,14 @@
+# Secrets — ne jamais committer
+.env
+
+# Modèle ML sérialisé (fichier pickle — ne pas versionner)
+*.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Docker
+*.log

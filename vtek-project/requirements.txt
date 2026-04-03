@@ -13,3 +13,6 @@ streamlit==1.41.1
 pydantic==2.10.4
 joblib==1.4.2
 numpy==2.2.1
+# Supervision sécurité
+slowapi==0.1.9
+prometheus-fastapi-instrumentator==7.0.0

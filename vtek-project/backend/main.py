@@ -2,9 +2,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 from common.schemas import CarSchema
 from backend.ml_service import predict_speed, train_model
 from backend.database import get_db, init_db, CarModel, engine
+from backend.security import SecurityHeadersMiddleware, AuditLoggingMiddleware, limiter
 import pandas as pd
 
 
@@ -15,6 +18,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="VTEK API", lifespan=lifespan)
+
+# --- Supervision sécurité ---
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(AuditLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 @app.get("/cars", response_model=list[CarSchema])
 def get_cars(db: Session = Depends(get_db)):

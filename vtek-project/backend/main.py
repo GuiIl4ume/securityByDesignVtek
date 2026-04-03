@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from slowapi.errors import RateLimitExceeded
@@ -26,13 +26,15 @@ app.add_middleware(AuditLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 @app.get("/cars", response_model=list[CarSchema])
-def get_cars(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_cars(request: Request, db: Session = Depends(get_db)):
     """Récupère les données depuis PostgreSQL"""
     cars = db.query(CarModel).all()
     return cars
 
 @app.post("/cars/ingest")
-def ingest_cars(cars: list[CarSchema], db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def ingest_cars(request: Request, cars: list[CarSchema], db: Session = Depends(get_db)):
     """Endpoint ETL : insère les données en base"""
     try:
         new_cars = [CarModel(**car.model_dump()) for car in cars]
@@ -44,7 +46,8 @@ def ingest_cars(cars: list[CarSchema], db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Erreur lors de l'ingestion des données")
 
 @app.post("/predict/max_speed")
-def predict_car_speed(car: CarSchema):
+@limiter.limit("30/minute")
+def predict_car_speed(request: Request, car: CarSchema):
     """Prédiction ML (inchangé)"""
     features = [
         car.power, car.torque, car.weight, car.aerodynamic_level,
@@ -56,7 +59,8 @@ def predict_car_speed(car: CarSchema):
     return {"predicted_max_speed": prediction}
 
 @app.post("/model/train")
-def trigger_training(db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def trigger_training(request: Request, db: Session = Depends(get_db)):
     """Entraîne le modèle sur les données en base"""
     # Lire les données via SQLAlchemy 2.0 (connection explicite, sans session.bind déprécié)
     with engine.connect() as conn:

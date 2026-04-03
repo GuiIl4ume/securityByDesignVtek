@@ -121,8 +121,8 @@ def run_etl_job():
     data_batch = [generate_car_data() for _ in range(100)]
     
     try:
-        # Envoi des données au backend via l'API
-        response = requests.post(f"{API_URL}/cars/ingest", json=data_batch)
+        # Envoi des données au backend via l'API (timeout 30s)
+        response = requests.post(f"{API_URL}/cars/ingest", json=data_batch, timeout=30)
         if response.status_code == 200:
             print(f"✅ Succès : {len(data_batch)} véhicules insérés via l'API.")
         else:

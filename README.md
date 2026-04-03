@@ -4,36 +4,56 @@
 [![OWASP Top 10](https://img.shields.io/badge/OWASP-A02%20A03%20A05%20A06%20A09-orange)](SECURITY_UPDATE_SUMMARY.md)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-green)](vtek-project/requirements.txt)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED)](vtek-project/docker-compose.yml)
+[![KrakenD](https://img.shields.io/badge/API%20Gateway-KrakenD-FF6B35)](vtek-project/gateway/krakend.json)
+[![Grafana](https://img.shields.io/badge/Monitoring-Grafana-F46800)](vtek-project/monitoring/)
 
 > **Plateforme intelligente de collecte et analyse de performances automobiles** avec garanties de sécurité, intégrité et confidentialité par conception.
 
 ## 🎯 À propos
 
-VTEK collecte automatiquement les données de véhicules (`puissance`, `poids`, `aérodynamisme`, etc.) et entraîne un modèle ML pour prédire les performances. L'application repose sur une **architecture 3-tiers sécurisée** avec validation stricte des entrées, gestion des secrets externalisée, et conteneurs non-root.
+VTEK collecte automatiquement les données de véhicules (`puissance`, `poids`, `aérodynamisme`, etc.) et entraîne un modèle ML pour prédire les performances. L'application repose sur une **architecture 4-tiers sécurisée** avec API Gateway, validation stricte des entrées, gestion des secrets externalisée, conteneurs non-root et supervision temps réel.
 
-### 📐 Architecture Tier 3
+### 📐 Architecture
 
 ```
+                   Internet
+                      │
+                      ▼
 ┌─────────────────────────────────────────────────────┐
-│  Tier 1 : Présentation (Streamlit Frontend)         │
-│  Port 8501 - Interface utilisateur interactive      │
+│  KrakenD API Gateway          :8080                 │
+│  ├─ Rate limiting par IP (5-60 req/min)             │
+│  ├─ Security headers HTTP (HSTS, CSP…)              │
+│  ├─ CORS restreint à l'origine du frontend          │
+│  └─ Telémétrie → Prometheus                         │
+└────────────────┬────────────────────────────────────┘
+                 │  Réseau Docker interne (backend non exposé)
+┌────────────────▼────────────────────────────────────┐
+│  Tier 1 : Présentation (Streamlit Frontend) :8501   │
+│  Interface utilisateur interactive                  │
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
 │  Tier 2 : Application (FastAPI Backend)             │
-│  Port 8000 - API REST avec validation Pydantic      │
-│  ├─ /cars (GET) - Récupérer les automobiles         │
+│  ├─ /health             - Diagnostic BDD            │
+│  ├─ /cars (GET)         - Récupérer les données     │
 │  ├─ /cars/ingest (POST) - Insérer les données       │
-│  ├─ /predict/max_speed (POST) - Prédiction ML       │
-│  └─ /model/train (POST) - Entraînement              │
+│  ├─ /predict/max_speed  - Prédiction ML             │
+│  ├─ /model/train        - Entraînement RF           │
+│  └─ /metrics            - Exposition Prometheus     │
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
 │  Tier 3 : Données (PostgreSQL 17)                   │
-│  Port 5432 - Base relationnelle sécurisée           │
 │  ├─ Authentification BD isolée                      │
-│  ├─ Health checks automatiques                      │
-│  └─ Volumes persistants chiffrés                    │
+│  ├─ Health checks automatiques (5s interval)        │
+│  └─ Volumes persistants                             │
+└─────────────────────────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────────┐
+│  Supervision (Prometheus :9090 + Grafana :3000)     │
+│  ├─ Métriques backend (/metrics) et gateway (__stats│
+│  ├─ Alertes sur codes HTTP 4xx/5xx                  │
+│  └─ Audit log structuré dans stdout Docker          │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -54,7 +74,7 @@ VTEK collecte automatiquement les données de véhicules (`puissance`, `poids`, 
 | **Tableau de Bord** | [docs/VTEK - Kanban.md](docs/VTEK%20-%20Kanban.md) | Tâches par rôle, sprint planning |
 | **Work Breakdown** | [docs/VTEK - WBS.md](docs/VTEK%20-%20WBS.md) | Décomposition du projet, jalons |
 | **Schéma Visuel** | [docs/draw/architecture.excalidraw.md](docs/draw/architecture.excalidraw.md) | Diagramme détaillé des flux |
-| **Mise à Jour Sécu** | [SECURITY_UPDATE_SUMMARY.md](SECURITY_UPDATE_SUMMARY.md) | 9 commits OWASP A02-A09 |
+| **Mise à Jour Sécu** | [SECURITY_UPDATE_SUMMARY.md](SECURITY_UPDATE_SUMMARY.md) | 13 commits OWASP + supervision + gateway |
 
 ## 🚀 Démarrage Rapide
 
@@ -73,19 +93,23 @@ cd securityByDesignVtek
 
 # 2. Configurer les secrets
 cp vtek-project/.env.example vtek-project/.env
-# ⚠️ Édite vtek-project/.env et remplace CHANGE_ME_IN_PRODUCTION par un mot de passe fort
+# ⚠️ Édite vtek-project/.env et remplace CHANGE_ME_IN_PRODUCTION
 nano vtek-project/.env
 
-# 3. Démarrer les services
+# 3. Démarrer tous les services
 cd vtek-project
 docker-compose up -d
 
-# 4. Accéder aux applications
-# Frontend    : http://localhost:8501 (Streamlit)
-# Backend API : http://localhost:8000 (FastAPI docs)
-# Database    : localhost:5432 (PostgreSQL)
+# 4. Accéder aux services
+# API Gateway  : http://localhost:8080  (point d'entrée unique)
+# Frontend     : http://localhost:8501  (Streamlit)
+# Prometheus   : http://localhost:9090  (métriques brutes)
+# Grafana      : http://localhost:3000  (tableaux de bord)
 
-# 5. Vérifier la santé
+# 5. Vérifier la santé du backend
+curl http://localhost:8080/health
+
+# 6. Vérifier l'état des conteneurs
 docker-compose ps
 ```
 
@@ -98,15 +122,17 @@ docker-compose down
 
 ## 🔐 Sécurité — Mises à jour Récentes
 
-La branche `main` inclut **9 commits de sécurité** corrigeant les vulnérabilités OWASP :
+La branche `main` inclut **13 commits** couvrant sécurité, supervision et gateway :
 
-| Vulnérabilité | Fix | Commit |
+| Vulnérabilité / Fonctionnalité | Fix | Commits |
 |---|---|---|
-| **A02** - Cryptographic Failures | Secrets externalisés, `.env.example` | 3 commits |
-| **A03** - Injection | Validation stricte Pydantic + `Literal` | 1 commit |
-| **A05** - Security Misconfiguration | Python 3.12-slim, conteneurs non-root, timeouts HTTP | 2 commits |
-| **A06** - Vulnerable Components | Dépendances épinglées, versions fixes | 1 commit |
-| **A09** - Logging & Monitoring | Erreurs masquées, exceptions typées | 2 commits |
+| **A02** - Cryptographic Failures | Secrets externalisés, `.env.example` | 3 |
+| **A03** - Injection | Validation stricte Pydantic + `Literal` | 1 |
+| **A05** - Security Misconfiguration | Python 3.12-slim, non-root, timeouts, rate limiting, security headers | 3 |
+| **A06** - Vulnerable Components | Dépendances épinglées, versions fixes | 1 |
+| **A09** - Logging & Monitoring | Audit log structuré, exceptions typées | 2 |
+| **Supervision** | Prometheus + Grafana + `/health` + `/metrics` | 2 |
+| **API Gateway** | KrakenD 2.7 (rate limit, CORS, headers, telémétrie) | 1 |
 
 👉 Détails : [SECURITY_UPDATE_SUMMARY.md](SECURITY_UPDATE_SUMMARY.md)
 
@@ -169,6 +195,8 @@ Ce projet démontre :
 
 - **Architecture microservices** avec Docker Compose et orchestration
 - **Security by Design** : validation en entrée, secrets externalisés, non-root
+- **API Gateway** : KrakenD pour centraliser routage, rate limiting et CORS
+- **Observabilité** : Prometheus + Grafana, audit logging, health checks
 - **ML en production** : scikit-learn avec joblib, réentraînement dynamique
 - **API REST moderne** : FastAPI avec dépendances, validation Pydantic v2
 - **Frontend interactif** : Streamlit pour visualisation temps réel
@@ -231,6 +259,21 @@ raise HTTPException(status_code=500, detail="Erreur lors du traitement")
 - Health checks PostgreSQL : 5s interval
 - Retry logic sur ETL : Gestion des défaillances réseau
 
+### API Gateway (KrakenD)
+
+- **Point d'entrée unique** : seul le port 8080 est exposé, le backend est isolé
+- **Rate limiting** centralisé par IP sur chaque endpoint
+- **CORS** restreint à l'origine du frontend
+- **En-têtes de sécurité** injectés par la gateway (HSTS, X-Frame-Options…)
+- **Telémétrie** via `/__stats` scrape par Prometheus
+
+### Supervision & Observabilité
+
+- **`/health`** : endpoint de diagnostic avec test de connectivité BDD
+- **`/metrics`** : métriques Prometheus (latence, codes HTTP, taux d'erreurs)
+- **Audit log** : chaque requête journalisée avec méthode, path, status, durée, IP
+- **Grafana** : tableaux de bord temps réel (port 3000), datasource auto-provisionnée
+
 > En savoir plus : [Architecture cible.md](docs/Architecture%20cible.md)
 
 ## 📞 Support & Contact
@@ -246,6 +289,6 @@ Ce projet est fourni à titre d'exemple pédagogique pour les principes **Securi
 
 ---
 
-**Dernière mise à jour** : avril 2026 | **Version** : 2.0 (Sécurité renforcée)
+**Dernière mise à jour** : avril 2026 | **Version** : 3.0 (Gateway + Supervision)
 
 

@@ -1,9 +1,11 @@
 # Mise à jour de sécurité - Résumé des actions
 
 ## Contexte
-Projet `vtek-project` était obsolète avec plusieurs vulnérabilités OWASP. Une mise à jour de sécurité complète a été effectuée.
+Projet `vtek-project` était obsolète avec plusieurs vulnérabilités OWASP. Une mise à jour complète a été effectuée en 3 phases : corrections OWASP, supervision sécurité, et API gateway.
 
 ## Workflow git utilisé
+
+### Phase 1 — Corrections OWASP (branche `security/mise-a-jour-securite` → PR → merge main)
 
 ### 1. Création d'une branche dédiée
 ```bash
@@ -22,36 +24,39 @@ Chaque commit adresse une vulnérabilité spécifique :
 | `b69e0ad` | Masquer erreurs internes | A09 | `backend/main.py` |
 | `2af15e3` | Exceptions typées | A09 | `backend/ml_service.py` |
 | `26cb87f` | Timeout HTTP | A05 | `etl/generator.py` |
-| `5bd5f11` | Python 3.12-slim + non-root | A05/A06 | `Dockerfile.backend`, `Dockerfile.frontend`, `Dockerfile.etl` |
+| `5bd5f11` | Python 3.12-slim + non-root | A05/A06 | `Dockerfile.*` |
 | `3a99c65` | Épinglage des dépendances | A06 | `requirements.txt` |
 
-### 3. Réinitialisation de main
-```bash
-git checkout main
-git reset --hard origin/main
-```
-Ramène `main` à l'état d'origine pour garder l'historique propre.
-
-### 4. Création de la Pull Request
+### 3. Création et fusion de la PR
 ```bash
 git checkout security/mise-a-jour-securite
 git push -u origin security/mise-a-jour-securite
-gh pr create --title "Security: mise à jour de sécurité complète" \
-  --body "Corrections OWASP A02, A03, A05, A06, A09 - voir les commits individuels"
-```
-
-### 5. Fusion de la PR
-```bash
+gh pr create --title "Security: mise à jour de sécurité complète"
 gh pr merge --merge
 ```
-La branche a été fusionnée dans `main` avec un commit de merge.
 
-## Correction apportées
+### Phase 2 — Supervision sécurité (commits directs sur `main`)
+
+| Commit | Tâche | Fichiers |
+|--------|-------|----------|
+| `f65cf67` | Security headers + audit logging | `backend/security.py`, `main.py`, `requirements.txt` |
+| `aac4e9e` | Rate limiting par IP | `backend/main.py` |
+| `9f9f589` | Endpoint `/health` avec test BDD | `backend/main.py` |
+| `7cd1ef4` | Stack Prometheus + Grafana | `docker-compose.yml`, `monitoring/`, `main.py`, `.env.example` |
+
+### Phase 3 — API Gateway (commit direct sur `main`)
+
+| Commit | Tâche | Fichiers |
+|--------|-------|----------|
+| `a599930` | KrakenD API Gateway 2.7 | `gateway/krakend.json`, `docker-compose.yml`, `monitoring/prometheus.yml` |
+
+## Corrections apportées
 
 ### Sécurité des secrets (OWASP A02)
 - Credentials supprimés du `docker-compose.yml`
 - Création d'un `.env.example` comme template
 - Ajout d'un `.gitignore` pour éviter les commits de `.env` et `*.pkl`
+- `GRAFANA_ADMIN_PASSWORD` ajouté dans `.env.example`
 
 ### Validation des entrées (OWASP A03)
 - Ajout de `Field()` avec bornes sur tous les champs de `CarSchema`
@@ -60,16 +65,32 @@ La branche a été fusionnée dans `main` avec un commit de merge.
 ### Fuite d'informations (OWASP A09)
 - Messages d'erreur génériques au lieu d'exposer les exceptions
 - Exceptions typées au lieu de `except:` nu
+- Audit logging structuré sur toutes les requêtes HTTP
 
 ### Configuration de sécurité (OWASP A05)
 - Timeout HTTP sur requêtes sortantes (30s)
 - Conteneurs Docker exécutés en utilisateur non-root
+- Rate limiting par IP via slowapi (backend) et KrakenD (gateway)
+- Security headers injectés par middleware et gateway
 
 ### Composants vulnérables (OWASP A06)
 - Python 3.10 → Python 3.12-slim
 - Toutes les dépendances épinglées avec versions fixes
 
+### Supervision & Observabilité
+- Endpoint `/health` : test de connectivité BDD en temps réel
+- Endpoint `/metrics` : métriques Prometheus (latence, codes HTTP)
+- Stack Prometheus + Grafana avec datasource auto-provisionnée
+- Scrape de la gateway KrakenD via `/__stats`
+
+### API Gateway (KrakenD 2.7)
+- Point d'entrée unique : port 8080 (backend non exposé publiquement)
+- Rate limiting centralisé par IP sur chaque endpoint
+- CORS restreint à l'origine du frontend
+- En-têtes de sécurité HTTP injectés (HSTS, X-Frame-Options, nosniff)
+- Télémétrie Prometheus intégrée
+
 ## État final
-- Branche `security/mise-a-jour-securite` fusionnée dans `main`
-- Tous les commits présents dans l'historique principal
+- **13 commits** de sécurité/supervision/gateway sur `main`
+- Architecture 4-tiers : Gateway → Frontend/Backend → PostgreSQL + Supervision
 - Prêt pour déploiement en production avec sécurité renforcée

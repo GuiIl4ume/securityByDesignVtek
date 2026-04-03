@@ -1,6 +1,8 @@
 
 
 
+> **État d'implémentation (avril 2026)** : Les composants marqués ✅ sont déployés et opérationnels. Les composants sans marqueur font partie de l'architecture cible.
+
 ```
                                          ┌──────────────────────────┐
                                          │        GitHub Repo       │
@@ -26,36 +28,40 @@
    │                │                                                 │
    ▼                ▼                                                 ▼
 ┌────────────-────┐   ┌──────────────────────────────┐     ┌──────────────-──────────┐
-│    Traefik      │   │          Keycloak            │     │         Airflow         │
-│ Reverse Proxy   │   │   AuthN/AuthZ · OIDC · MFA   │     │ Scheduler · Worker      │
-│ TLS, WAF, OIDC  │   └───────────────┬──────────────┘     │ Webserver · Flower UI   │
-└──────┬──────────┘                   │                    └───────────┬────-────────┘
-       │ HTTPS                         │ OIDC / Tokens                 │ REST / APIs
+│  KrakenD ✅     │   │          Keycloak            │     │         Airflow         │
+│ API Gateway     │   │   AuthN/AuthZ · OIDC · MFA   │     │ Scheduler · Worker      │
+│ :8080 (déployé) │   └───────────────┬──────────────┘     │ Webserver · Flower UI   │
+│ Rate limit, CORS│                   │                    └───────────┬────-────────┘
+│ Security headers│                   │                               │ REST / APIs
+│ Prometheus tel. │                   │                               │
+└──────┬──────────┘                   │                               │
+       │ (backend isolé)              │ OIDC / Tokens                 │
        ▼                               ▼                               ▼
 ┌──────────────────────────────────────────────────────────┐     ┌───────────────────────┐
-│                     FastAPI Backend                       │     │      DAGs Airflow      │
+│               FastAPI Backend ✅                          │     │      DAGs Airflow      │
 │ - Ingestion API                                           │     │                       │
 │ - CRUD Data                                               │     │  • ingest_csv          │
 │ - Auth Keycloak (OIDC)                                    │     │  • ingest_api          │
-│ - Validation / Pydantic                                   │     │  • ingest_scraper      │
+│ - Validation / Pydantic ✅                                │     │  • ingest_scraper      │
 │ - Serve data → Streamlit                                  │     │  • ingest_assetto      │
+│ - /health + /metrics ✅                                   │     │                       │
 └──────────┬───────────────────────────────────────────────┘     └───────────┬───────────┘
            │ DB Access (TLS)                                         │ Writes to DB
            │                                                         │
            ▼                                                         ▼
      ┌──────────────────────────────┐                        ┌──────────────────────────┐
-     │         PostgreSQL           │◀───────────────────────▶│       RAW / CLEAN        │
+     │       PostgreSQL 17 ✅       │◀───────────────────────▶│       RAW / CLEAN        │
      │  - Schemas RAW + CLEAN       │                        │  · Normalized datasets   │
      │  - Least Privilege Accounts  │                        │  · History + metadata    │
      └──────────────┬───────────────┘                        └──────────────────────────┘
                     │
                     ▼
-          ┌───────────────────────────────┐
-          │        Streamlit Frontend      │
-          │  - Visualisation Dashboards    │
-          │  - Login Keycloak (OIDC)       │
-          │  - App UI / Graphs / KPIs      │
-          └───────────────────────────────┘
+          ┌───────────────────────────────┐     ┌───────────────────────────────┐
+          │    Streamlit Frontend ✅       │     │   Prometheus + Grafana ✅     │
+          │  - Visualisation Dashboards    │     │  - Métriques backend/gateway  │
+          │  - Login Keycloak (OIDC)       │     │  - Audit logs structurés      │
+          │  - App UI / Graphs / KPIs      │     │  - Alertes 4xx/5xx            │
+          └───────────────────────────────┘     └───────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────────────────────────
 

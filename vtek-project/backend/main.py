@@ -8,6 +8,7 @@ from common.schemas import CarSchema
 from backend.ml_service import predict_speed, train_model
 from backend.database import get_db, init_db, CarModel, engine
 from backend.security import SecurityHeadersMiddleware, AuditLoggingMiddleware, limiter
+from prometheus_fastapi_instrumentator import Instrumentator
 import pandas as pd
 
 
@@ -24,6 +25,9 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(AuditLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Expose /metrics pour Prometheus (à protéger par firewall en production)
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 @app.get("/health", tags=["Supervision"])

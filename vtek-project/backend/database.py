@@ -1,10 +1,9 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 
-# Récupération de l'URL de la DB depuis les variables d'environnement (Security by Design)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vtek_user:secure_password@db:5432/vtek_db")
+# L'URL doit être fournie via variable d'environnement — aucun fallback avec credentials
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

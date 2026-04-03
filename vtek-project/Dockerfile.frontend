@@ -1,5 +1,8 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 WORKDIR /app
 RUN pip install --no-cache-dir streamlit pandas requests seaborn matplotlib
+COPY ./common ./common
 COPY ./frontend ./frontend
+RUN useradd -r -s /sbin/nologin appuser && chown -R appuser /app
+USER appuser
 CMD ["streamlit", "run", "frontend/app.py", "--server.port=8501", "--server.address=0.0.0.0"]

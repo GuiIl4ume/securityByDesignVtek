@@ -35,7 +35,7 @@ def predict_speed(features: list):
         if os.path.exists(MODEL_PATH):
             try:
                 _model = joblib.load(MODEL_PATH)
-            except:
+            except (OSError, ValueError):
                 return None
         else:
             return None

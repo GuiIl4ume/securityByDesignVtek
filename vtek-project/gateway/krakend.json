@@ -1,0 +1,127 @@
+{
+  "$schema": "https://www.krakend.io/schema/v2.7/krakend.json",
+  "version": 3,
+  "name": "VTEK API Gateway",
+  "port": 8080,
+  "timeout": "10000ms",
+  "extra_config": {
+    "security/cors": {
+      "allow_origins": ["http://localhost:8501"],
+      "allow_methods": ["GET", "POST"],
+      "allow_headers": ["Content-Type"],
+      "expose_headers": ["Content-Type"],
+      "max_age": "12h"
+    },
+    "security/http": {
+      "sts_seconds": 315360000,
+      "sts_include_subdomains": true,
+      "frame_deny": true,
+      "content_type_nosniff": true,
+      "referrer_policy": "no-referrer",
+      "browser_xss_filter": false
+    },
+    "telemetry/opentelemetry": {
+      "service_name": "vtek-gateway",
+      "metric_reporting_period": 15,
+      "layers": {
+        "global": {
+          "disable_metrics": false,
+          "disable_traces": true
+        },
+        "router": {
+          "disable_metrics": false
+        }
+      }
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint": "/cars",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 60,
+          "strategy": "ip",
+          "capacity": 60
+        }
+      },
+      "backend": [
+        {
+          "host": ["http://backend:8000"],
+          "url_pattern": "/cars",
+          "encoding": "no-op"
+        }
+      ]
+    },
+    {
+      "endpoint": "/cars/ingest",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 10,
+          "strategy": "ip",
+          "capacity": 10
+        }
+      },
+      "backend": [
+        {
+          "host": ["http://backend:8000"],
+          "url_pattern": "/cars/ingest",
+          "encoding": "no-op"
+        }
+      ]
+    },
+    {
+      "endpoint": "/predict/max_speed",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 30,
+          "strategy": "ip",
+          "capacity": 30
+        }
+      },
+      "backend": [
+        {
+          "host": ["http://backend:8000"],
+          "url_pattern": "/predict/max_speed",
+          "encoding": "no-op"
+        }
+      ]
+    },
+    {
+      "endpoint": "/model/train",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 5,
+          "strategy": "ip",
+          "capacity": 5
+        }
+      },
+      "backend": [
+        {
+          "host": ["http://backend:8000"],
+          "url_pattern": "/model/train",
+          "encoding": "no-op"
+        }
+      ]
+    },
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "host": ["http://backend:8000"],
+          "url_pattern": "/health",
+          "encoding": "no-op"
+        }
+      ]
+    }
+  ]
+}

@@ -18,14 +18,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- API Gateway (KrakenD) ---
+  gateway:
+    image: devopsfaith/krakend:2.7
+    container_name: vtek-gateway
+    volumes:
+      - ./gateway/krakend.json:/etc/krakend/krakend.json:ro
+    ports:
+      - "8080:8080"
+    command: ["run", "-c", "/etc/krakend/krakend.json"]
+    depends_on:
+      - backend
+    networks:
+      - vtek-network
+
   # --- Tier 2 : Application (Backend) ---
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: vtek-backend
-    ports:
-      - "8000:8000"
+    # Port 8000 non exposé publiquement : tout le trafic passe par la gateway (port 8080)
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -44,10 +57,10 @@ services:
     ports:
       - "8501:8501"
     environment:
-      # Le frontend parle au backend via le nom du service Docker interne 'backend'
-      API_URL: http://backend:8000
+      # Le frontend passe par la gateway KrakenD
+      API_URL: http://gateway:8080
     depends_on:
-      - backend
+      - gateway
     networks:
       - vtek-network
 
@@ -58,9 +71,9 @@ services:
       dockerfile: Dockerfile.etl
     container_name: vtek-etl
     environment:
-      API_URL: http://backend:8000
+      API_URL: http://gateway:8080
     depends_on:
-      - backend
+      - gateway
     networks:
       - vtek-network
 

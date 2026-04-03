@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, text
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from common.schemas import CarSchema
@@ -24,6 +24,16 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(AuditLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+
+
+@app.get("/health", tags=["Supervision"])
+def health_check(db: Session = Depends(get_db)):
+    """Vérifie la disponibilité du service et la connectivité à la base de données."""
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}
+    except Exception:
+        raise HTTPException(status_code=503, detail="Base de données inaccessible")
 
 @app.get("/cars", response_model=list[CarSchema])
 @limiter.limit("60/minute")

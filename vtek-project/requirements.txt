@@ -1,13 +1,15 @@
 # requirements.txt
-fastapi
-uvicorn[standard]
-pandas
-scikit-learn
-sqlalchemy
-psycopg2-binary
-requests
-seaborn
-matplotlib
-streamlit
-pydantic
-joblib
+# Versions épinglées pour reproductibilité et sécurité
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pandas==2.2.3
+scikit-learn==1.6.0
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+requests==2.32.3
+seaborn==0.13.2
+matplotlib==3.9.3
+streamlit==1.41.1
+pydantic==2.10.4
+joblib==1.4.2
+numpy==2.2.1
